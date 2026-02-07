@@ -48,7 +48,7 @@ export default function EmergencyIntake() {
 
     try {
       const response = await fetch(
-        "https://lifelineai.onrender.com/triage",
+        `${process.env.REACT_APP_API_URL}/triage`,
         {
           method: "POST",
           headers: {
