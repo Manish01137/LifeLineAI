@@ -19,7 +19,15 @@ const symptomsList = [
 export default function EmergencyIntake() {
   const navigate = useNavigate();
 
+  // FORM STATE
+  const [age, setAge] = useState("");
+  const [emergencyType, setEmergencyType] = useState("");
+  const [heartRate, setHeartRate] = useState("");
+  const [oxygen, setOxygen] = useState("");
+  const [notes, setNotes] = useState("");
+
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const toggleSymptom = (symptom) => {
     setSelectedSymptoms((prev) =>
@@ -27,6 +35,54 @@ export default function EmergencyIntake() {
         ? prev.filter((s) => s !== symptom)
         : [...prev, symptom]
     );
+  };
+
+  // SUBMIT → BACKEND
+  const handleSubmit = async () => {
+    if (!heartRate || !oxygen) {
+      alert("Please enter heart rate and oxygen level");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        "https://lifelineai.onrender.com/triage",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            heartRate: Number(heartRate),
+            oxygen: Number(oxygen),
+            age,
+            emergencyType,
+            symptoms: selectedSymptoms,
+            notes
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      navigate("/result", {
+        state: {
+          ...data,
+          age,
+          emergencyType,
+          heartRate,
+          oxygen,
+          symptoms: selectedSymptoms
+        }
+      });
+    } catch (err) {
+      alert("Backend error. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,12 +106,21 @@ export default function EmergencyIntake() {
         <div className="card">
           <h3>Patient Information</h3>
           <div className="grid-2">
-            <input type="number" placeholder="Patient Age" />
-            <select>
-              <option>Emergency Type</option>
-              <option>Cardiac Emergency</option>
-              <option>Accident</option>
-              <option>Respiratory</option>
+            <input
+              type="number"
+              placeholder="Patient Age"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+            />
+
+            <select
+              value={emergencyType}
+              onChange={(e) => setEmergencyType(e.target.value)}
+            >
+              <option value="">Emergency Type</option>
+              <option value="Cardiac">Cardiac Emergency</option>
+              <option value="Accident">Accident</option>
+              <option value="Respiratory">Respiratory</option>
             </select>
           </div>
         </div>
@@ -64,8 +129,18 @@ export default function EmergencyIntake() {
         <div className="card">
           <h3>Vital Signs</h3>
           <div className="grid-2">
-            <input type="number" placeholder="Heart Rate (BPM)" />
-            <input type="number" placeholder="Oxygen Saturation (%)" />
+            <input
+              type="number"
+              placeholder="Heart Rate (BPM)"
+              value={heartRate}
+              onChange={(e) => setHeartRate(e.target.value)}
+            />
+            <input
+              type="number"
+              placeholder="Oxygen Saturation (%)"
+              value={oxygen}
+              onChange={(e) => setOxygen(e.target.value)}
+            />
           </div>
         </div>
 
@@ -93,15 +168,18 @@ export default function EmergencyIntake() {
           <textarea
             className="notes"
             placeholder="Additional notes (optional)..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
           />
         </div>
 
         {/* Action */}
         <button
           className="primary big"
-          onClick={() => navigate("/result")}
+          onClick={handleSubmit}
+          disabled={loading}
         >
-          ⚡ Assess Emergency →
+          {loading ? "Analyzing..." : "⚡ Assess Emergency →"}
         </button>
       </div>
     </div>
